@@ -1,7 +1,9 @@
 mod data;
 
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
 use clap::{Parser, Subcommand};
-use crate::data::init;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -17,6 +19,10 @@ struct Cli {
 enum Commands {
     /// creates a new empty repository
     Init,
+    HashObject {
+        #[arg(short, long)]
+        filename: String,
+    },
 }
 
 fn main() {
@@ -29,12 +35,19 @@ fn main() {
 
     match &cli.command {
         Some(Commands::Init) => {
-            if let Some(rgit_path) = init().unwrap() {
+            if let Ok(_) = data::init() {
+                let mut rgit_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+                rgit_path.push(data::GIT_DIR);
                 println!("Initialized empty rgit repository in {:?}", rgit_path);
-            } else {
-                println!(".rgit folder already exists! Please not init again!")
             }
         },
+        Some(Commands::HashObject { filename}) => {
+            let mut file = File::open(filename).expect("input file not exist");
+            let mut contents = String::new();
+            file.read_to_string(&mut contents).unwrap();
+            let oid = data::hash_object(&contents);
+            println!("{oid}");
+        }
         None => {}
     }
 }
