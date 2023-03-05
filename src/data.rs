@@ -13,9 +13,9 @@ fn mkdir<P: AsRef<Path>>(path: P) -> io::Result<()> {
 }
 
 /// Create a new file.
-fn mkfile<P: AsRef<Path>>(path: P, data: &str) -> io::Result<()> {
+fn mkfile<P: AsRef<Path>>(path: P, data: &Vec<u8>) -> io::Result<()> {
     let mut file = File::create(path)?;
-    file.write_all(data.as_bytes())?;
+    file.write_all(data)?;
 
     Ok(())
 }
@@ -27,19 +27,31 @@ pub fn init() -> io::Result<()> {
     mkdir(object)
 }
 
-pub fn hash_object(data: &str) -> String {
-    let oid = sha1_smol::Sha1::from(data).digest().to_string();
+pub fn hash_object(data: &str, type_obj: &str) -> String {
+    let mut obj = type_obj.as_bytes().to_owned();
+    obj.push(b'\x00');
+    obj.append(&mut data.as_bytes().to_owned());
+
+    let oid = sha1_smol::Sha1::from(obj.clone()).digest().to_string();
     let path = format!("{GIT_DIR}/objects/{oid}");
-    mkfile(path, data).expect("create fail");
+    mkfile(path, &obj).expect("create failed");
 
     oid
 }
 
-pub fn get_object(oid: &str) -> String {
+pub fn get_object(oid: &str, expected: Option<&str>) -> String {
     let path = format!("{GIT_DIR}/objects/{oid}");
     let mut file = File::open(path).unwrap();
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap();
 
-    contents
+    let mut cont: Vec<_> = contents.split(b'\x00' as char).collect();
+    let content = cont.pop().unwrap();
+    let type_obj= cont.pop().unwrap();
+
+    if !expected.is_none() {
+        assert_eq!(type_obj, expected.unwrap());
+    }
+
+    content.to_string()
 }

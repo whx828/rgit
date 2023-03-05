@@ -49,11 +49,11 @@ fn main() {
             let mut file = File::open(filename).expect("input file not exist");
             let mut contents = String::new();
             file.read_to_string(&mut contents).unwrap();
-            let oid = data::hash_object(&contents);
+            let oid = data::hash_object(&contents, "blob");
             println!("{oid}");
         },
         Some(Commands::CatFile { object }) => {
-            let out_str = data::get_object(object);
+            let out_str = data::get_object(object, Some("blob"));
             stdout().flush().unwrap();
             print!("{out_str}");
         }
