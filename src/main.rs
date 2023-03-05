@@ -1,7 +1,7 @@
 mod data;
 
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, stdout, Write};
 use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 
@@ -23,6 +23,10 @@ enum Commands {
         #[arg(short, long)]
         filename: String,
     },
+    CatFile {
+        #[arg(short, long)]
+        object: String,
+    }
 }
 
 fn main() {
@@ -38,7 +42,7 @@ fn main() {
             if let Ok(_) = data::init() {
                 let mut rgit_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
                 rgit_path.push(data::GIT_DIR);
-                println!("Initialized empty rgit repository in {:?}", rgit_path);
+                println!("Initialized empty rgit repository in {:#?}", rgit_path);
             }
         },
         Some(Commands::HashObject { filename}) => {
@@ -47,6 +51,11 @@ fn main() {
             file.read_to_string(&mut contents).unwrap();
             let oid = data::hash_object(&contents);
             println!("{oid}");
+        },
+        Some(Commands::CatFile { object }) => {
+            let out_str = data::get_object(object);
+            stdout().flush().unwrap();
+            print!("{out_str}");
         }
         None => {}
     }

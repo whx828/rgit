@@ -1,5 +1,5 @@
 use std::fs::{self, File};
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::Path;
 
 pub const GIT_DIR: &str = ".rgit";
@@ -33,4 +33,13 @@ pub fn hash_object(data: &str) -> String {
     mkfile(path, data).expect("create fail");
 
     oid
+}
+
+pub fn get_object(oid: &str) -> String {
+    let path = format!("{GIT_DIR}/objects/{oid}");
+    let mut file = File::open(path).unwrap();
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).unwrap();
+
+    contents
 }
