@@ -4,7 +4,6 @@ use std::path::Path;
 
 pub const GIT_DIR: &str = ".rgit";
 
-/// Create a new directory.
 fn mkdir<P: AsRef<Path>>(path: P) -> io::Result<()> {
     let path = path.as_ref();
 
@@ -12,8 +11,7 @@ fn mkdir<P: AsRef<Path>>(path: P) -> io::Result<()> {
     Ok(())
 }
 
-/// Create a new file.
-fn mkfile<P: AsRef<Path>>(path: P, data: &Vec<u8>) -> io::Result<()> {
+fn mkfile<P: AsRef<Path>>(path: P, data: &[u8]) -> io::Result<()> {
     let mut file = File::create(path)?;
     file.write_all(data)?;
 
@@ -45,12 +43,15 @@ pub fn get_object(oid: &str, expected: Option<&str>) -> String {
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap();
 
-    let mut cont: Vec<_> = contents.split(b'\x00' as char).collect();
+    let mut cont = contents
+        .split(b'\x00' as char)
+        .take(2)
+        .collect::<Vec<&str>>();
     let content = cont.pop().unwrap();
-    let type_obj= cont.pop().unwrap();
+    let type_obj = cont.pop().unwrap();
 
-    if !expected.is_none() {
-        assert_eq!(type_obj, expected.unwrap());
+    if let Some(expected_type) = expected {
+        assert_eq!(expected_type, type_obj);
     }
 
     content.to_string()

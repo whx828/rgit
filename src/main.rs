@@ -1,9 +1,12 @@
+mod base;
 mod data;
 
-use std::fs::File;
-use std::io::{Read, stdout, Write};
-use std::path::PathBuf;
 use clap::{Parser, Subcommand};
+use std::fs::File;
+use std::io::{stdout, Read, Write};
+use std::path::PathBuf;
+
+// 本地仓库
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -26,7 +29,8 @@ enum Commands {
     CatFile {
         #[arg(short, long)]
         object: String,
-    }
+    },
+    WriteTree,
 }
 
 fn main() {
@@ -39,23 +43,33 @@ fn main() {
 
     match &cli.command {
         Some(Commands::Init) => {
-            if let Ok(_) = data::init() {
+            if File::open(data::GIT_DIR).is_ok() {
+                println!("Already initialized rgit repository! Please don't again.");
+                return;
+            }
+
+            if data::init().is_ok() {
                 let mut rgit_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
                 rgit_path.push(data::GIT_DIR);
                 println!("Initialized empty rgit repository in {:#?}", rgit_path);
             }
-        },
-        Some(Commands::HashObject { filename}) => {
+        }
+        Some(Commands::HashObject { filename }) => {
             let mut file = File::open(filename).expect("input file not exist");
             let mut contents = String::new();
             file.read_to_string(&mut contents).unwrap();
             let oid = data::hash_object(&contents, "blob");
             println!("{oid}");
-        },
+        }
         Some(Commands::CatFile { object }) => {
-            let out_str = data::get_object(object, Some("blob"));
+            // let out_str = data::get_object(object, Some("blob"));
+            let out_str = data::get_object(object, None);
             stdout().flush().unwrap();
             print!("{out_str}");
+        }
+        Some(Commands::WriteTree) => {
+            let oid = base::write_tree();
+            println!("{oid}");
         }
         None => {}
     }
