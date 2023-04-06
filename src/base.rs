@@ -161,6 +161,17 @@ pub fn commit(message: &str) -> String {
     oid
 }
 
+pub fn checkout(oid: &str) {
+    let commit = data::get_object(oid, Some("commit"));
+    let tree = commit.lines().collect::<Vec<&str>>()[0]
+        .split_whitespace()
+        .nth(1)
+        .unwrap();
+
+    read_tree(tree);
+    data::set_head(oid);
+}
+
 pub fn get_commit(oid: &str) {
     let commit = data::get_object(oid, Some("commit"));
     println!("commit {oid}");

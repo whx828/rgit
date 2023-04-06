@@ -42,6 +42,10 @@ enum Commands {
     Log {
         oid: Option<String>,
     },
+    Checkout {
+        #[arg(short, long)]
+        oid: String,
+    },
 }
 
 fn main() {
@@ -96,6 +100,9 @@ fn main() {
                 base::get_commit(&oid);
             }
         },
+        Some(Commands::Checkout { oid }) => {
+            base::checkout(oid);
+        }
         None => {}
     }
 }
