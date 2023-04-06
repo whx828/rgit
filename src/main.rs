@@ -46,6 +46,10 @@ enum Commands {
         #[arg(short, long)]
         oid: String,
     },
+    Tag {
+        name: String,
+        oid: Option<String>,
+    },
 }
 
 fn main() {
@@ -77,8 +81,8 @@ fn main() {
             println!("{oid}");
         }
         Some(Commands::CatFile { object }) => {
-            // let out_str = data::get_object(object, Some("blob"));
-            let out_str = data::get_object(object, None);
+            let object = base::get_oid(object);
+            let out_str = data::get_object(&object, None);
             stdout().flush().unwrap();
             print!("{out_str}");
         }
@@ -86,23 +90,38 @@ fn main() {
             let oid = base::write_tree();
             println!("{oid}");
         }
-        Some(Commands::ReadTree { tree }) => base::read_tree(tree),
+        Some(Commands::ReadTree { tree }) => {
+            let tree = base::get_oid(tree);
+            base::read_tree(&tree)
+        }
         Some(Commands::Commit { message }) => {
             let commit_oid = base::commit(message);
             println!("{commit_oid}");
         }
         Some(Commands::Log { oid }) => match oid {
             Some(oid) => {
-                base::get_commit(oid);
+                let oid = base::get_oid(oid);
+                base::get_commit(&oid);
             }
             None => {
-                let oid = data::get_head().unwrap();
+                let oid = data::get_ref("HEAD").unwrap();
                 base::get_commit(&oid);
             }
         },
         Some(Commands::Checkout { oid }) => {
-            base::checkout(oid);
+            let oid = base::get_oid(oid);
+            base::checkout(&oid);
         }
+        Some(Commands::Tag { name, oid }) => match oid {
+            Some(oid) => {
+                let oid = base::get_oid(oid);
+                base::create_tag(name, &oid);
+            }
+            None => {
+                let oid = data::get_ref("HEAD").unwrap();
+                base::create_tag(name, &oid);
+            }
+        },
         None => {}
     }
 }

@@ -22,16 +22,23 @@ pub fn init() -> io::Result<()> {
     mkdir(GIT_DIR)?;
 
     let object = format!("{GIT_DIR}/objects");
-    mkdir(object)
+    mkdir(object)?;
+
+    let ref_path = format!("{GIT_DIR}/refs");
+    mkdir(ref_path)?;
+
+    let tags = format!("{GIT_DIR}/refs/tags");
+    mkdir(tags)
 }
 
-pub fn set_head(oid: &str) {
-    let path = format!("{GIT_DIR}/HEAD");
+pub fn set_ref(rgit_ref: &str, oid: &str) {
+    let path = format!("{GIT_DIR}/{rgit_ref}");
+
     mkfile(path, oid.as_bytes()).unwrap();
 }
 
-pub fn get_head() -> Option<String> {
-    let path = format!("{GIT_DIR}/HEAD");
+pub fn get_ref(rgit_ref: &str) -> Option<String> {
+    let path = format!("{GIT_DIR}/{rgit_ref}");
     let mut file = File::open(path).ok()?;
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap();

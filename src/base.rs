@@ -7,6 +7,9 @@ use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 
+use core::str;
+use hex::FromHex;
+
 use crate::data;
 
 pub fn write_tree() -> String {
@@ -145,7 +148,7 @@ pub fn commit(message: &str) -> String {
     commit.push_str(&write_tree());
     commit.push('\n');
 
-    if let Some(head) = data::get_head() {
+    if let Some(head) = data::get_ref("HEAD") {
         commit.push_str("parent ");
         commit.push_str(&head);
         commit.push('\n');
@@ -156,7 +159,7 @@ pub fn commit(message: &str) -> String {
     commit.push('\n');
 
     let oid = data::hash_object(&commit, "commit");
-    data::set_head(&oid);
+    data::set_ref("HEAD", &oid);
 
     oid
 }
@@ -169,7 +172,11 @@ pub fn checkout(oid: &str) {
         .unwrap();
 
     read_tree(tree);
-    data::set_head(oid);
+    data::set_ref("HEAD", oid);
+}
+
+pub fn create_tag(name: &str, oid: &str) {
+    data::set_ref(&format!("refs/tags/{name}"), oid);
 }
 
 pub fn get_commit(oid: &str) {
@@ -183,6 +190,31 @@ pub fn get_commit(oid: &str) {
     if let Some(parent_oid) = lines[1].split_whitespace().nth(1) {
         get_commit(parent_oid)
     }
+}
+
+pub fn get_oid(name: &str) -> String {
+    let refs_to_try = vec![
+        format!("{name}"),
+        format!("refs/{name}"),
+        format!("refs/tags/{name}"),
+        format!("refs/heads/{name}"),
+    ];
+
+    for r in refs_to_try {
+        if let Some(r) = data::get_ref(&r) {
+            return r;
+        }
+    }
+
+    if let Some(oid) = data::get_ref(name) {
+        return oid;
+    }
+
+    if <[u8; 20]>::from_hex(name).is_ok() {
+        return name.to_string();
+    }
+
+    unreachable!()
 }
 
 fn is_dot_path(path: &Path) -> bool {
