@@ -4,14 +4,14 @@ use std::path::Path;
 
 pub const GIT_DIR: &str = ".rgit";
 
-fn mkdir<P: AsRef<Path>>(path: P) -> io::Result<()> {
+pub fn mkdir<P: AsRef<Path>>(path: P) -> io::Result<()> {
     let path = path.as_ref();
 
     fs::create_dir(path)?;
     Ok(())
 }
 
-fn mkfile<P: AsRef<Path>>(path: P, data: &[u8]) -> io::Result<()> {
+pub fn mkfile<P: AsRef<Path>>(path: P, data: &[u8]) -> io::Result<()> {
     let mut file = File::create(path)?;
     file.write_all(data)?;
 

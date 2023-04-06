@@ -31,6 +31,10 @@ enum Commands {
         object: String,
     },
     WriteTree,
+    ReadTree {
+        #[arg(short, long)]
+        tree: String,
+    },
 }
 
 fn main() {
@@ -71,6 +75,7 @@ fn main() {
             let oid = base::write_tree();
             println!("{oid}");
         }
+        Some(Commands::ReadTree { tree }) => base::read_tree(tree),
         None => {}
     }
 }
