@@ -35,6 +35,10 @@ enum Commands {
         #[arg(short, long)]
         tree: String,
     },
+    Commit {
+        #[arg(short, long)]
+        message: String,
+    },
 }
 
 fn main() {
@@ -76,6 +80,10 @@ fn main() {
             println!("{oid}");
         }
         Some(Commands::ReadTree { tree }) => base::read_tree(tree),
+        Some(Commands::Commit { message }) => {
+            let commit_oid = base::commit(message);
+            println!("{commit_oid}");
+        }
         None => {}
     }
 }

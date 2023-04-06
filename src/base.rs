@@ -140,6 +140,27 @@ pub fn read_tree(tree: &str) {
     }
 }
 
+pub fn commit(message: &str) -> String {
+    let mut commit = "tree ".to_string();
+    commit.push_str(&write_tree());
+    commit.push('\n');
+
+    if let Some(head) = data::get_head() {
+        commit.push_str("parent ");
+        commit.push_str(&head);
+        commit.push('\n');
+    }
+
+    commit.push('\n');
+    commit.push_str(message);
+    commit.push('\n');
+
+    let oid = data::hash_object(&commit, "commit");
+    data::set_head(&oid);
+
+    oid
+}
+
 fn is_dot_path(path: &Path) -> bool {
     format!("{path:?}").split('/').last().unwrap().as_bytes()[0] == b'.'
 }

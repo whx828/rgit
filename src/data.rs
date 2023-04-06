@@ -25,6 +25,20 @@ pub fn init() -> io::Result<()> {
     mkdir(object)
 }
 
+pub fn set_head(oid: &str) {
+    let path = format!("{GIT_DIR}/HEAD");
+    mkfile(path, oid.as_bytes()).unwrap();
+}
+
+pub fn get_head() -> Option<String> {
+    let path = format!("{GIT_DIR}/HEAD");
+    let mut file = File::open(path).ok()?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).unwrap();
+
+    Some(contents)
+}
+
 pub fn hash_object(data: &str, type_obj: &str) -> String {
     let mut obj = type_obj.as_bytes().to_owned();
     obj.push(b'\x00');
