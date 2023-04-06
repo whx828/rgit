@@ -39,6 +39,9 @@ enum Commands {
         #[arg(short, long)]
         message: String,
     },
+    Log {
+        oid: Option<String>,
+    },
 }
 
 fn main() {
@@ -84,6 +87,15 @@ fn main() {
             let commit_oid = base::commit(message);
             println!("{commit_oid}");
         }
+        Some(Commands::Log { oid }) => match oid {
+            Some(oid) => {
+                base::get_commit(oid);
+            }
+            None => {
+                let oid = data::get_head().unwrap();
+                base::get_commit(&oid);
+            }
+        },
         None => {}
     }
 }

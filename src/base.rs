@@ -161,6 +161,19 @@ pub fn commit(message: &str) -> String {
     oid
 }
 
+pub fn get_commit(oid: &str) {
+    let commit = data::get_object(oid, Some("commit"));
+    println!("commit {oid}");
+
+    let mut lines = commit.lines().collect::<Vec<&str>>();
+    let message = lines.pop().unwrap();
+    println!("    {message}\n");
+
+    if let Some(parent_oid) = lines[1].split_whitespace().nth(1) {
+        get_commit(parent_oid)
+    }
+}
+
 fn is_dot_path(path: &Path) -> bool {
     format!("{path:?}").split('/').last().unwrap().as_bytes()[0] == b'.'
 }
