@@ -2,9 +2,11 @@ mod base;
 mod data;
 
 use clap::{Parser, Subcommand};
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::{stdout, Read, Write};
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 
 // 本地仓库
 
@@ -50,6 +52,7 @@ enum Commands {
         name: String,
         oid: Option<String>,
     },
+    K,
 }
 
 fn main() {
@@ -122,6 +125,42 @@ fn main() {
                 base::create_tag(name, &oid);
             }
         },
+        Some(Commands::K) => {
+            let mut sides = HashSet::new();
+            let mut dot = String::from("digraph commits {\n");
+            let entries = data::iter_refs();
+
+            for (f, oids) in entries {
+                for oid in oids.windows(2) {
+                    let arrow_oid = format!("  {} -> {}\n", oid[0], oid[1]);
+                    if sides.insert(arrow_oid.clone()) {
+                        dot.push_str(&arrow_oid);
+                    }
+                }
+                let f_arrow = format!("  {f} -> {}\n", oids[0]);
+                dot.push_str(&f_arrow);
+                let f_note = format!("  {f} [shape=note]\n");
+                dot.push_str(&f_note);
+            }
+            dot.push('}');
+
+            let mut child = Command::new("dot")
+                .arg("-Tjpeg")
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .spawn()
+                .expect("failed to spawn child process");
+
+            if let Some(mut stdin) = child.stdin.take() {
+                stdin.write_all(dot.as_bytes()).unwrap();
+            }
+
+            Command::new("open")
+                .args(["-a", "Preview.app", "-f"])
+                .stdin(Stdio::from(child.stdout.unwrap()))
+                .spawn()
+                .unwrap();
+        }
         None => {}
     }
 }

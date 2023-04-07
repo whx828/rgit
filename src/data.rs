@@ -2,6 +2,8 @@ use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::Path;
 
+use crate::base;
+
 pub const GIT_DIR: &str = ".rgit";
 
 pub fn mkdir<P: AsRef<Path>>(path: P) -> io::Result<()> {
@@ -44,6 +46,32 @@ pub fn get_ref(rgit_ref: &str) -> Option<String> {
     file.read_to_string(&mut contents).unwrap();
 
     Some(contents)
+}
+
+pub fn iter_refs() -> Vec<(String, Vec<String>)> {
+    let path = format!("{GIT_DIR}/refs/tags/");
+    fs::read_dir(path)
+        .unwrap()
+        .map(|res| {
+            let mut oids = Vec::new();
+            let filename = res.unwrap().file_name().into_string().unwrap();
+            let oid = base::get_oid(&filename);
+            oids.push(oid.clone());
+            get_commit_oid(&oid, &mut oids);
+
+            (filename, oids)
+        })
+        .collect::<Vec<(String, Vec<String>)>>()
+}
+
+fn get_commit_oid(oid: &str, oids: &mut Vec<String>) {
+    let commit = get_object(oid, Some("commit"));
+    let lines = commit.lines().collect::<Vec<&str>>();
+
+    if let Some(parent_oid) = lines[1].split_whitespace().nth(1) {
+        oids.push(parent_oid.to_string());
+        get_commit_oid(parent_oid, oids)
+    }
 }
 
 pub fn hash_object(data: &str, type_obj: &str) -> String {

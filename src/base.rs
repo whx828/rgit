@@ -192,7 +192,11 @@ pub fn get_commit(oid: &str) {
     }
 }
 
-pub fn get_oid(name: &str) -> String {
+pub fn get_oid(mut name: &str) -> String {
+    if name == "@" {
+        name = "HEAD";
+    }
+
     let refs_to_try = vec![
         format!("{name}"),
         format!("refs/{name}"),
