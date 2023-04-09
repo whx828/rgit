@@ -53,6 +53,10 @@ enum Commands {
         oid: Option<String>,
     },
     K,
+    Branch {
+        name: String,
+        start_point: Option<String>,
+    },
 }
 
 fn main() {
@@ -107,7 +111,7 @@ fn main() {
                 base::get_commit(&oid);
             }
             None => {
-                let oid = data::get_ref("HEAD").unwrap();
+                let oid = data::get_ref("HEAD", true).value.unwrap();
                 base::get_commit(&oid);
             }
         },
@@ -121,7 +125,7 @@ fn main() {
                 base::create_tag(name, &oid);
             }
             None => {
-                let oid = data::get_ref("HEAD").unwrap();
+                let oid = data::get_ref("HEAD", true).value.unwrap();
                 base::create_tag(name, &oid);
             }
         },
@@ -161,6 +165,18 @@ fn main() {
                 .spawn()
                 .unwrap();
         }
+        Some(Commands::Branch { name, start_point }) => match start_point {
+            Some(sp) => {
+                let oid = base::get_oid(sp);
+                base::create_branch(name, &oid);
+                println!("Branch {name} created at {:?}", &sp[0..10]);
+            }
+            None => {
+                let oid = data::get_ref("HEAD", true).value.unwrap();
+                base::create_branch(name, &oid);
+                println!("Branch {name} created at {:?}", &oid[0..10]);
+            }
+        },
         None => {}
     }
 }

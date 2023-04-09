@@ -30,22 +30,65 @@ pub fn init() -> io::Result<()> {
     mkdir(ref_path)?;
 
     let tags = format!("{GIT_DIR}/refs/tags");
-    mkdir(tags)
+    mkdir(tags)?;
+
+    let heads = format!("{GIT_DIR}/refs/heads");
+    mkdir(heads)
 }
 
-pub fn set_ref(rgit_ref: &str, oid: &str) {
-    let path = format!("{GIT_DIR}/{rgit_ref}");
-
-    mkfile(path, oid.as_bytes()).unwrap();
+pub struct RefValue {
+    pub symbolic: bool,
+    pub value: Option<String>,
 }
 
-pub fn get_ref(rgit_ref: &str) -> Option<String> {
+impl RefValue {
+    pub fn new(value: Option<String>) -> Self {
+        RefValue {
+            symbolic: false,
+            value,
+        }
+    }
+}
+
+pub fn set_ref(rgit_ref: &str, value: RefValue, deref: bool) {
+    let rgit_ref = get_ref_iner(rgit_ref, deref).0;
+    assert!(value.value.is_some());
+    let ref_value;
+
+    if value.symbolic {
+        ref_value = format!("ref: {}", value.value.unwrap());
+    } else {
+        ref_value = value.value.unwrap();
+    }
+
     let path = format!("{GIT_DIR}/{rgit_ref}");
-    let mut file = File::open(path).ok()?;
+
+    mkfile(path, ref_value.as_bytes()).unwrap();
+}
+
+pub fn get_ref(rgit_ref: &str, deref: bool) -> RefValue {
+    get_ref_iner(rgit_ref, deref).1
+}
+
+fn get_ref_iner(rgit_ref: &str, deref: bool) -> (String, RefValue) {
+    let path = format!("{GIT_DIR}/{rgit_ref}");
+    let mut value = None;
     let mut contents = String::new();
-    file.read_to_string(&mut contents).unwrap();
 
-    Some(contents)
+    if let Ok(mut file) = File::open(path) {
+        file.read_to_string(&mut contents).unwrap();
+        value = Some(contents.clone());
+    }
+
+    let symbolic = !contents.is_empty() && contents.starts_with("ref:");
+    if symbolic {
+        if deref {
+            let value = contents.split(":").nth(1).unwrap();
+            return get_ref_iner(value, true);
+        }
+    }
+
+    (rgit_ref.to_string(), RefValue { symbolic, value })
 }
 
 pub fn iter_refs() -> Vec<(String, Vec<String>)> {

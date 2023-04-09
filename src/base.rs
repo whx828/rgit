@@ -11,6 +11,7 @@ use core::str;
 use hex::FromHex;
 
 use crate::data;
+use crate::data::RefValue;
 
 pub fn write_tree() -> String {
     let rgit_path = PathBuf::from("./test");
@@ -148,7 +149,7 @@ pub fn commit(message: &str) -> String {
     commit.push_str(&write_tree());
     commit.push('\n');
 
-    if let Some(head) = data::get_ref("HEAD") {
+    if let Some(head) = data::get_ref("HEAD", true).value {
         commit.push_str("parent ");
         commit.push_str(&head);
         commit.push('\n');
@@ -159,7 +160,8 @@ pub fn commit(message: &str) -> String {
     commit.push('\n');
 
     let oid = data::hash_object(&commit, "commit");
-    data::set_ref("HEAD", &oid);
+    let tmp = RefValue::new(Some(oid.clone()));
+    data::set_ref("HEAD", tmp, true);
 
     oid
 }
@@ -172,11 +174,18 @@ pub fn checkout(oid: &str) {
         .unwrap();
 
     read_tree(tree);
-    data::set_ref("HEAD", oid);
+    let tmp = RefValue::new(Some(oid.to_string()));
+    data::set_ref("HEAD", tmp, true);
 }
 
 pub fn create_tag(name: &str, oid: &str) {
-    data::set_ref(&format!("refs/tags/{name}"), oid);
+    let tmp = RefValue::new(Some(oid.to_string()));
+    data::set_ref(&format!("refs/tags/{name}"), tmp, true);
+}
+
+pub fn create_branch(name: &str, oid: &str) {
+    let tmp = RefValue::new(Some(oid.to_string()));
+    data::set_ref(&format!("refs/heads/{name}"), tmp, true);
 }
 
 pub fn get_commit(oid: &str) {
@@ -205,12 +214,12 @@ pub fn get_oid(mut name: &str) -> String {
     ];
 
     for r in refs_to_try {
-        if let Some(r) = data::get_ref(&r) {
+        if let Some(r) = data::get_ref(&r, true).value {
             return r;
         }
     }
 
-    if let Some(oid) = data::get_ref(name) {
+    if let Some(oid) = data::get_ref(name, true).value {
         return oid;
     }
 
