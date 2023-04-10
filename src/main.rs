@@ -58,6 +58,10 @@ enum Commands {
         start_point: Option<String>,
     },
     Status,
+    Reset {
+        #[arg(short, long)]
+        commit: String,
+    },
 }
 
 fn main() {
@@ -201,6 +205,9 @@ fn main() {
                 Some(branch_name) => println!("On branch {}", branch_name),
                 None => println!("HEAD detached at{}", &head[0..10]),
             }
+        }
+        Some(Commands::Reset { commit }) => {
+            base::reset(commit);
         }
         None => {}
     }

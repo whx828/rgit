@@ -242,6 +242,11 @@ pub fn get_status_name() -> Option<String> {
     Some(head.split("ref: refs/heads/").last().unwrap().to_string())
 }
 
+pub fn reset(oid: &str) {
+    let value = RefValue::new(Some(oid.to_string()));
+    data::set_ref("HEAD", value, true);
+}
+
 pub fn create_tag(name: &str, oid: &str) {
     let tmp = RefValue::new(Some(oid.to_string()));
     data::set_ref(&format!("refs/tags/{name}"), tmp, true);
