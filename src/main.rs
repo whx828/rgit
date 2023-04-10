@@ -1,5 +1,6 @@
 mod base;
 mod data;
+mod diff;
 
 use clap::{Parser, Subcommand};
 use std::collections::HashSet;
@@ -61,6 +62,9 @@ enum Commands {
     Reset {
         #[arg(short, long)]
         commit: String,
+    },
+    Show {
+        oid: Option<String>,
     },
 }
 
@@ -209,6 +213,16 @@ fn main() {
         Some(Commands::Reset { commit }) => {
             base::reset(commit);
         }
+        Some(Commands::Show { oid }) => match oid {
+            Some(oid) => {
+                let oid = base::get_oid(oid);
+                base::print_commit(&oid);
+            }
+            None => {
+                let oid = data::get_ref("HEAD", true).value.unwrap();
+                base::print_commit(&oid);
+            }
+        },
         None => {}
     }
 }

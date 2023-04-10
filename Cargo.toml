@@ -9,3 +9,4 @@ edition = "2021"
 clap = { version = "4.1.8", features = ["derive"] }
 hex = "0.4.3"
 sha1_smol = "1.0.0"
+tempfile = "3.5.0"

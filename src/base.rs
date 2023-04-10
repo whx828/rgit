@@ -4,15 +4,19 @@ use std::fs;
 use std::fs::File;
 use std::io;
 use std::io::Read;
+use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::Command;
 
 use core::str;
 use hex::FromHex;
+use tempfile::NamedTempFile;
 
 use crate::data;
 use crate::data::RefValue;
 use crate::data::GIT_DIR;
+use crate::diff;
 
 pub fn init() -> io::Result<()> {
     data::init()?;
@@ -255,6 +259,32 @@ pub fn create_tag(name: &str, oid: &str) {
 pub fn create_branch(name: &str, oid: &str) {
     let tmp = RefValue::new(Some(oid.to_string()));
     data::set_ref(&format!("refs/heads/{name}"), tmp, true);
+}
+
+pub fn print_commit(oid: &str) {
+    let modi_contents = diff::compare_trees(oid);
+    for (i, j) in &modi_contents {
+        let arg1 = format!("{}", data::get_object(i, None));
+        let arg2 = format!("{}", data::get_object(j, None));
+
+        let mut file1 = NamedTempFile::new().unwrap();
+        file1.write_all(arg1.as_bytes()).unwrap();
+
+        let mut file2 = NamedTempFile::new().unwrap();
+        file2.write_all(arg2.as_bytes()).unwrap();
+
+        let mut child = Command::new("diff")
+            .args([
+                "--text",
+                "--unified",
+                file1.path().to_str().unwrap(),
+                file2.path().to_str().unwrap(),
+            ])
+            .spawn()
+            .expect("failed to spawn child process");
+
+        child.wait().expect("failed to wait for child process");
+    }
 }
 
 pub fn get_commit(oid: &str) {
