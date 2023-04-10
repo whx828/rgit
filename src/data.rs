@@ -36,6 +36,7 @@ pub fn init() -> io::Result<()> {
     mkdir(heads)
 }
 
+#[derive(Debug)]
 pub struct RefValue {
     pub symbolic: bool,
     pub value: Option<String>,
@@ -83,7 +84,7 @@ fn get_ref_iner(rgit_ref: &str, deref: bool) -> (String, RefValue) {
     let symbolic = !contents.is_empty() && contents.starts_with("ref:");
     if symbolic {
         if deref {
-            let value = contents.split(":").nth(1).unwrap();
+            let value = contents.split(": ").nth(1).unwrap();
             return get_ref_iner(value, true);
         }
     }

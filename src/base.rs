@@ -12,6 +12,19 @@ use hex::FromHex;
 
 use crate::data;
 use crate::data::RefValue;
+use crate::data::GIT_DIR;
+
+pub fn init() -> io::Result<()> {
+    data::init()?;
+
+    let value = RefValue {
+        symbolic: true,
+        value: Some(String::from("refs/heads/master")),
+    };
+    data::set_ref("HEAD", value, false);
+
+    Ok(())
+}
 
 pub fn write_tree() -> String {
     let rgit_path = PathBuf::from("./test");
@@ -166,16 +179,67 @@ pub fn commit(message: &str) -> String {
     oid
 }
 
-pub fn checkout(oid: &str) {
-    let commit = data::get_object(oid, Some("commit"));
+pub fn checkout(name: &str) {
+    let oid = get_oid(name);
+    let commit = data::get_object(&oid, Some("commit"));
+
     let tree = commit.lines().collect::<Vec<&str>>()[0]
         .split_whitespace()
         .nth(1)
         .unwrap();
 
     read_tree(tree);
-    let tmp = RefValue::new(Some(oid.to_string()));
-    data::set_ref("HEAD", tmp, true);
+
+    let tmp = if is_branch(name) {
+        let value = format!("refs/heads/{name}");
+        data::RefValue {
+            symbolic: true,
+            value: Some(value),
+        }
+    } else {
+        data::RefValue::new(Some(oid))
+    };
+
+    data::set_ref("HEAD", tmp, false);
+}
+
+fn is_branch(name: &str) -> bool {
+    let rgit_ref = format!("refs/heads/{name}");
+    data::get_ref(&rgit_ref, false).value.is_some()
+}
+
+pub fn iter_branch_names() -> Vec<String> {
+    let path = format!("{GIT_DIR}/refs/heads/");
+
+    fs::read_dir(path)
+        .unwrap()
+        .map(|res| res.unwrap().file_name().into_string().unwrap())
+        .collect::<Vec<String>>()
+}
+
+fn iter_branch_contents() -> Vec<(String, String)> {
+    let mut contents = vec![];
+    for name in iter_branch_names() {
+        let path = format!("{GIT_DIR}/refs/heads/{name}");
+        let mut file = File::open(path).unwrap();
+        let mut content = String::new();
+        file.read_to_string(&mut content).unwrap();
+        contents.push((name, content));
+    }
+
+    contents
+}
+
+pub fn get_status_name() -> Option<String> {
+    let value = data::get_ref("HEAD", false);
+    if !value.symbolic {
+        return None;
+    }
+
+    let head = value.value.unwrap();
+    assert!(head.starts_with("ref: refs/heads/"));
+
+    Some(head.split("ref: refs/heads/").last().unwrap().to_string())
 }
 
 pub fn create_tag(name: &str, oid: &str) {
@@ -189,8 +253,18 @@ pub fn create_branch(name: &str, oid: &str) {
 }
 
 pub fn get_commit(oid: &str) {
+    let branch_oids = iter_branch_contents();
+    let mut refs = String::new();
+
+    for (br, br_oid) in branch_oids {
+        if br_oid == oid.to_string() {
+            let b = format!("<- {br} ");
+            refs.push_str(&b);
+        }
+    }
+
     let commit = data::get_object(oid, Some("commit"));
-    println!("commit {oid}");
+    println!("commit {oid} {refs}");
 
     let mut lines = commit.lines().collect::<Vec<&str>>();
     let message = lines.pop().unwrap();

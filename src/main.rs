@@ -46,7 +46,7 @@ enum Commands {
     },
     Checkout {
         #[arg(short, long)]
-        oid: String,
+        commit: String,
     },
     Tag {
         name: String,
@@ -54,9 +54,10 @@ enum Commands {
     },
     K,
     Branch {
-        name: String,
+        name: Option<String>,
         start_point: Option<String>,
     },
+    Status,
 }
 
 fn main() {
@@ -74,7 +75,7 @@ fn main() {
                 return;
             }
 
-            if data::init().is_ok() {
+            if base::init().is_ok() {
                 let mut rgit_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
                 rgit_path.push(data::GIT_DIR);
                 println!("Initialized empty rgit repository in {:#?}", rgit_path);
@@ -115,9 +116,8 @@ fn main() {
                 base::get_commit(&oid);
             }
         },
-        Some(Commands::Checkout { oid }) => {
-            let oid = base::get_oid(oid);
-            base::checkout(&oid);
+        Some(Commands::Checkout { commit }) => {
+            base::checkout(commit);
         }
         Some(Commands::Tag { name, oid }) => match oid {
             Some(oid) => {
@@ -165,18 +165,43 @@ fn main() {
                 .spawn()
                 .unwrap();
         }
-        Some(Commands::Branch { name, start_point }) => match start_point {
-            Some(sp) => {
-                let oid = base::get_oid(sp);
-                base::create_branch(name, &oid);
-                println!("Branch {name} created at {:?}", &sp[0..10]);
-            }
-            None => {
-                let oid = data::get_ref("HEAD", true).value.unwrap();
-                base::create_branch(name, &oid);
-                println!("Branch {name} created at {:?}", &oid[0..10]);
-            }
+        Some(Commands::Branch { name, start_point }) => match name {
+            Some(name) => match start_point {
+                Some(sp) => {
+                    let oid = base::get_oid(sp);
+                    base::create_branch(name, &oid);
+                    println!("Branch {name} created at {:?}", &sp[0..10]);
+                }
+                None => {
+                    let oid = data::get_ref("HEAD", true).value.unwrap();
+                    base::create_branch(name, &oid);
+                    println!("Branch {name} created at {:?}", &oid[0..10]);
+                }
+            },
+            None => match base::get_status_name() {
+                Some(branch_name) => {
+                    for name in base::iter_branch_names() {
+                        if name == branch_name {
+                            println!("*{branch_name}");
+                        } else {
+                            println!(" {name}");
+                        }
+                    }
+                }
+                None => {
+                    let head = base::get_oid("@");
+                    println!("HEAD detached at{}", &head[0..10]);
+                }
+            },
         },
+        Some(Commands::Status) => {
+            let head = base::get_oid("@");
+            let branch = base::get_status_name();
+            match branch {
+                Some(branch_name) => println!("On branch {}", branch_name),
+                None => println!("HEAD detached at{}", &head[0..10]),
+            }
+        }
         None => {}
     }
 }
