@@ -16,6 +16,7 @@ use tempfile::NamedTempFile;
 use crate::data;
 use crate::data::RefValue;
 use crate::data::GIT_DIR;
+use crate::diff;
 
 pub fn init() -> io::Result<()> {
     data::init()?;
@@ -250,6 +251,35 @@ pub fn reset(oid: &str) {
     data::set_ref("HEAD", value, true);
 }
 
+pub fn read_tree_merged(tree1: &str, tree2: &str) {
+    let tree1_oid = get_oid(tree1);
+    let tree2_oid = get_oid(tree2);
+    let tree_oid = diff::merge(&tree1_oid, &tree2_oid);
+
+    let mut commit = "tree ".to_string();
+    commit.push_str(&tree_oid);
+    commit.push('\n');
+
+    commit.push_str("parent ");
+    commit.push_str(&tree1_oid);
+    commit.push('\n');
+
+    commit.push_str("parent ");
+    commit.push_str(&tree2_oid);
+    commit.push('\n');
+
+    commit.push('\n');
+    commit.push_str("merge message");
+    commit.push('\n');
+
+    let oid = data::hash_object(&commit, "commit");
+    let tmp = RefValue::new(Some(oid.clone()));
+    data::set_ref(tree1, tmp, true);
+
+    println!("{commit}");
+    read_tree(&tree_oid);
+}
+
 pub fn create_tag(name: &str, oid: &str) {
     let tmp = RefValue::new(Some(oid.to_string()));
     data::set_ref(&format!("refs/tags/{name}"), tmp, true);
@@ -305,6 +335,13 @@ pub fn get_commit(oid: &str) {
 
     if let Some(parent_oid) = lines[1].split_whitespace().nth(1) {
         get_commit(parent_oid)
+    }
+
+    if lines.len() > 3 {
+        println!("another parent ----------");
+        if let Some(parent_oid) = lines[2].split_whitespace().nth(1) {
+            get_commit(parent_oid)
+        }
     }
 }
 

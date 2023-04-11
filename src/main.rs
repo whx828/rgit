@@ -69,6 +69,10 @@ enum Commands {
     Diff {
         oid: Option<String>,
     },
+    Merge {
+        #[arg(short, long)]
+        branch: String,
+    },
 }
 
 fn main() {
@@ -243,6 +247,9 @@ fn main() {
                 base::print_commit(&modi_contents);
             }
         },
+        Some(Commands::Merge { branch }) => {
+            base::read_tree_merged("HEAD", branch);
+        }
         None => {}
     }
 }
