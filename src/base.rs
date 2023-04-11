@@ -16,7 +16,6 @@ use tempfile::NamedTempFile;
 use crate::data;
 use crate::data::RefValue;
 use crate::data::GIT_DIR;
-use crate::diff;
 
 pub fn init() -> io::Result<()> {
     data::init()?;
@@ -261,9 +260,8 @@ pub fn create_branch(name: &str, oid: &str) {
     data::set_ref(&format!("refs/heads/{name}"), tmp, true);
 }
 
-pub fn print_commit(oid: &str) {
-    let modi_contents = diff::compare_trees(oid);
-    for (i, j) in &modi_contents {
+pub fn print_commit(modi_contents: &Vec<(String, String)>) {
+    for (i, j) in modi_contents {
         let arg1 = format!("{}", data::get_object(i, None));
         let arg2 = format!("{}", data::get_object(j, None));
 

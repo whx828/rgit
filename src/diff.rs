@@ -1,4 +1,4 @@
-use crate::data;
+use crate::{base, data};
 
 pub fn compare_trees(oid: &str) -> Vec<(String, String)> {
     let binding = data::get_object(&oid, None);
@@ -97,4 +97,16 @@ fn find_add(parent: Vec<Vec<String>>, child: Vec<String>) -> bool {
     }
 
     true
+}
+
+pub fn get_working_tree_diff(oid: &str) -> Vec<(String, String)> {
+    let now_tree = base::write_tree();
+    let now_uncommit_file_content = data::get_object(&now_tree, Some("tree"));
+
+    let binding = data::get_object(&oid, None);
+    let child_tree = binding.lines().next().unwrap().split(' ').nth(1).unwrap();
+
+    let now_commit_file_content = data::get_object(child_tree, None);
+
+    diff_trees(now_commit_file_content, now_uncommit_file_content)
 }

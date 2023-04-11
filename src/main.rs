@@ -66,6 +66,9 @@ enum Commands {
     Show {
         oid: Option<String>,
     },
+    Diff {
+        oid: Option<String>,
+    },
 }
 
 fn main() {
@@ -216,11 +219,25 @@ fn main() {
         Some(Commands::Show { oid }) => match oid {
             Some(oid) => {
                 let oid = base::get_oid(oid);
-                base::print_commit(&oid);
+                let modi_contents = diff::compare_trees(&oid);
+                base::print_commit(&modi_contents);
             }
             None => {
                 let oid = data::get_ref("HEAD", true).value.unwrap();
-                base::print_commit(&oid);
+                let modi_contents = diff::compare_trees(&oid);
+                base::print_commit(&modi_contents);
+            }
+        },
+        Some(Commands::Diff { oid }) => match oid {
+            Some(oid) => {
+                let oid = base::get_oid(oid);
+                let modi_contents = diff::get_working_tree_diff(&oid);
+                base::print_commit(&modi_contents);
+            }
+            None => {
+                let oid = data::get_ref("HEAD", true).value.unwrap();
+                let modi_contents = diff::get_working_tree_diff(&oid);
+                base::print_commit(&modi_contents);
             }
         },
         None => {}
