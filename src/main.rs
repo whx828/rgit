@@ -212,6 +212,9 @@ fn main() {
                 Some(branch_name) => println!("On branch {}", branch_name),
                 None => println!("HEAD detached at{}", &head[0..10]),
             }
+
+            let oid = data::get_ref("HEAD", true).value.unwrap();
+            diff::get_working_tree_diff_simple_version(&oid);
         }
         Some(Commands::Reset { commit }) => {
             base::reset(commit);
